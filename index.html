@@ -1,0 +1,1735 @@
+<!DOCTYPE html>
+<html lang="ml">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KGAPA Admin Panel</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+/* ============================================================
+   DESIGN TOKENS
+============================================================ */
+:root {
+  --g-dark:   #1b5e20;
+  --g-mid:    #2e7d32;
+  --g-light:  #e8f5e9;
+  --g-border: #a5d6a7;
+  --accent:   #f39c12;
+  --blue:     #1565c0;
+  --red:      #c62828;
+  --orange:   #e65100;
+  --text:     #1a1a1a;
+  --muted:    #555;
+  --bg:       #f0f4f0;
+  --card:     #ffffff;
+  --radius:   10px;
+  --shadow:   0 2px 12px rgba(0,0,0,0.10);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Segoe UI', Arial, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+}
+
+/* ============================================================
+   LOGIN SCREEN
+============================================================ */
+#loginScreen {
+  position: fixed;
+  inset: 0;
+  background: linear-gradient(135deg, var(--g-dark) 0%, #388e3c 100%);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+}
+.login-card {
+  background: #fff;
+  border-radius: 16px;
+  padding: 36px 30px;
+  width: 90%;
+  max-width: 360px;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.25);
+  text-align: center;
+}
+.login-logo {
+  width: 70px;
+  margin-bottom: 12px;
+}
+.login-card h2 {
+  color: var(--g-mid);
+  font-size: 1.3rem;
+  margin-bottom: 4px;
+}
+.login-card p {
+  color: var(--muted);
+  font-size: 0.82rem;
+  margin-bottom: 22px;
+}
+.login-card select,
+.login-card input[type="password"] {
+  width: 100%;
+  padding: 11px 14px;
+  margin-bottom: 14px;
+  border: 1.5px solid #ccc;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.login-card select:focus,
+.login-card input:focus { border-color: var(--g-mid); }
+.login-btn {
+  width: 100%;
+  padding: 12px;
+  background: var(--g-mid);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.login-btn:hover { background: var(--g-dark); }
+#loginError {
+  color: var(--red);
+  font-size: 0.85rem;
+  margin-top: 10px;
+  min-height: 18px;
+}
+
+/* ============================================================
+   TOP BAR
+============================================================ */
+#appShell { display: none; }
+
+.top-bar {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%;
+  background: var(--g-mid);
+  padding: 10px 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  z-index: 1000;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  flex-wrap: wrap;
+}
+.top-bar-title {
+  font-weight: bold;
+  color: #fff;
+  font-size: 1rem;
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.top-bar-district {
+  background: rgba(255,255,255,0.2);
+  color: #fff;
+  border-radius: 20px;
+  padding: 4px 12px;
+  font-size: 0.82rem;
+  font-weight: bold;
+  white-space: nowrap;
+}
+.btn-top {
+  padding: 7px 14px;
+  border: none;
+  border-radius: 6px;
+  color: white;
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 0.82rem;
+  white-space: nowrap;
+  transition: opacity 0.2s;
+}
+.btn-top:hover { opacity: 0.85; }
+.btn-change-pin { background: var(--accent); }
+.btn-logout     { background: var(--red); }
+
+/* ============================================================
+   MAIN CONTENT
+============================================================ */
+.main-content {
+  padding: 80px 16px 30px;
+  max-width: 1100px;
+  margin: auto;
+}
+
+/* ============================================================
+   STATS BAR
+============================================================ */
+.stats-bar {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+.stat-card {
+  flex: 1;
+  min-width: 110px;
+  background: var(--card);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  box-shadow: var(--shadow);
+  text-align: center;
+  border-top: 4px solid var(--g-mid);
+}
+.stat-card.orange { border-top-color: var(--accent); }
+.stat-card.blue   { border-top-color: var(--blue); }
+.stat-card.red    { border-top-color: var(--red); }
+.stat-number {
+  font-size: 1.8rem;
+  font-weight: 900;
+  color: var(--g-mid);
+  line-height: 1;
+}
+.stat-card.orange .stat-number { color: var(--accent); }
+.stat-card.blue   .stat-number { color: var(--blue); }
+.stat-card.red    .stat-number { color: var(--red); }
+.stat-label {
+  font-size: 0.75rem;
+  color: var(--muted);
+  margin-top: 4px;
+}
+
+/* ============================================================
+   TOOLBAR
+============================================================ */
+.toolbar {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.search-box {
+  flex: 1;
+  min-width: 180px;
+  padding: 9px 14px;
+  border: 1.5px solid #ccc;
+  border-radius: 8px;
+  font-size: 0.93rem;
+  outline: none;
+}
+.search-box:focus { border-color: var(--g-mid); }
+.filter-select {
+  padding: 9px 12px;
+  border: 1.5px solid #ccc;
+  border-radius: 8px;
+  font-size: 0.88rem;
+  outline: none;
+  cursor: pointer;
+}
+.btn-pdf {
+  padding: 9px 14px;
+  border: none;
+  border-radius: 8px;
+  font-weight: bold;
+  font-size: 0.82rem;
+  cursor: pointer;
+  color: #fff;
+  white-space: nowrap;
+}
+.btn-pdf-all      { background: var(--blue); }
+.btn-pdf-approved { background: var(--g-mid); }
+
+/* ============================================================
+   LOADING SPINNER
+============================================================ */
+.loading-wrap {
+  text-align: center;
+  padding: 40px;
+  color: var(--muted);
+  display: none;
+}
+.spinner {
+  width: 36px; height: 36px;
+  border: 4px solid #ddd;
+  border-top-color: var(--g-mid);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin: 0 auto 12px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ============================================================
+   CARD GRID
+============================================================ */
+#cardGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 14px;
+}
+.app-card {
+  background: var(--card);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: box-shadow 0.2s;
+}
+.app-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.15); }
+.card-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px 10px;
+  border-bottom: 1px solid #f0f0f0;
+}
+.card-avatar {
+  width: 48px; height: 48px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--g-border);
+  background: var(--g-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  overflow: hidden;
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: var(--g-mid);
+}
+.card-avatar img {
+  width: 100%; height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.card-name {
+  font-weight: 700;
+  font-size: 1rem;
+  line-height: 1.2;
+}
+.card-designation {
+  font-size: 0.78rem;
+  color: var(--muted);
+  margin-top: 2px;
+}
+.badge {
+  display: inline-block;
+  padding: 2px 9px;
+  border-radius: 20px;
+  font-size: 0.72rem;
+  font-weight: bold;
+  margin-top: 5px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.badge-pending  { background: #fff3e0; color: #e65100; }
+.badge-approved { background: #e8f5e9; color: #2e7d32; }
+.badge-rejected { background: #ffebee; color: #c62828; }
+
+.card-body {
+  padding: 10px 16px 12px;
+  flex: 1;
+}
+.card-row {
+  display: flex;
+  gap: 8px;
+  font-size: 0.82rem;
+  margin-bottom: 6px;
+  align-items: flex-start;
+}
+.card-row-label {
+  color: var(--muted);
+  min-width: 60px;
+  flex-shrink: 0;
+}
+.card-row-val { font-weight: 600; word-break: break-all; }
+
+.card-footer {
+  padding: 10px 16px;
+  background: #fafafa;
+  border-top: 1px solid #f0f0f0;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.admission-input {
+  flex: 1;
+  min-width: 100px;
+  padding: 6px 10px;
+  border: 1.5px solid #ccc;
+  border-radius: 6px;
+  font-size: 0.82rem;
+  outline: none;
+}
+.admission-input:focus { border-color: var(--g-mid); }
+.btn-action {
+  padding: 6px 12px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 0.78rem;
+  color: #fff;
+  white-space: nowrap;
+  transition: opacity 0.2s;
+}
+.btn-action:hover { opacity: 0.8; }
+.btn-approve  { background: var(--g-mid); }
+.btn-reject   { background: var(--red); }
+.btn-pdf-card { background: var(--blue); }
+
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: var(--muted);
+  font-size: 1rem;
+  grid-column: 1 / -1;
+}
+
+/* ============================================================
+   MODALS
+============================================================ */
+.modal-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 9000;
+  justify-content: center;
+  align-items: center;
+}
+.modal-overlay.active { display: flex; }
+.modal-box {
+  background: #fff;
+  border-radius: 12px;
+  padding: 28px 24px;
+  width: 90%;
+  max-width: 340px;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.2);
+}
+.modal-box h3 {
+  margin-bottom: 16px;
+  color: var(--g-mid);
+  font-size: 1.1rem;
+}
+.modal-box input {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1.5px solid #ccc;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  margin-bottom: 14px;
+  outline: none;
+}
+.modal-box input:focus { border-color: var(--g-mid); }
+.modal-actions {
+  display: flex;
+  gap: 10px;
+}
+.btn-modal-save {
+  flex: 1;
+  padding: 10px;
+  background: var(--g-mid);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-weight: bold;
+  cursor: pointer;
+  font-size: 0.93rem;
+}
+.btn-modal-cancel {
+  padding: 10px 16px;
+  background: #eee;
+  color: #555;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.93rem;
+}
+
+/* ============================================================
+   TOAST NOTIFICATION
+============================================================ */
+#toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%) translateY(60px);
+  background: #333;
+  color: #fff;
+  padding: 10px 22px;
+  border-radius: 24px;
+  font-size: 0.9rem;
+  z-index: 99999;
+  opacity: 0;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+}
+#toast.show {
+  transform: translateX(-50%) translateY(0);
+  opacity: 1;
+}
+#toast.success { background: var(--g-mid); }
+#toast.error   { background: var(--red); }
+
+/* ============================================================
+   ID CARD MODAL
+============================================================ */
+#idCardModal .modal-box {
+  max-width: 300px;
+  padding: 20px 20px 24px;
+  text-align: center;
+}
+#idCardModal h3 {
+  margin-bottom: 14px;
+}
+/* The printable card itself */
+#idCardTemplate {
+  width: 240px;
+  margin: 0 auto 14px;
+  border: 3px solid #2e7d32;
+  border-radius: 14px;
+  overflow: hidden;
+  font-family: 'Segoe UI', Arial, sans-serif;
+  background: #fff;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+}
+.idc-header {
+  background: linear-gradient(160deg, #2e7d32 0%, #1b5e20 100%);
+  padding: 14px 8px 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+.idc-logo {
+  width: 46px; height: 46px;
+  border-radius: 50%;
+  background: #fff;
+  padding: 3px;
+  object-fit: contain;
+  display: block;
+}
+.idc-org-name {
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.3;
+  text-align: center;
+  letter-spacing: 0.02em;
+}
+.idc-org-sub {
+  color: rgba(255,255,255,0.82);
+  font-size: 9px;
+  text-align: center;
+}
+.idc-photo-wrap {
+  display: flex;
+  justify-content: center;
+  margin: 12px 0 6px;
+}
+.idc-photo {
+  width: 72px; height: 88px;
+  border: 2px solid #2e7d32;
+  border-radius: 6px;
+  object-fit: cover;
+  background: #e8f5e9;
+}
+.idc-photo-placeholder {
+  width: 72px; height: 88px;
+  border: 2px dashed #a5d6a7;
+  border-radius: 6px;
+  background: #e8f5e9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  color: #999;
+}
+.idc-name {
+  font-size: 13px;
+  font-weight: 800;
+  text-transform: uppercase;
+  text-align: center;
+  color: #1a1a1a;
+  padding: 0 10px;
+  margin-bottom: 2px;
+  letter-spacing: 0.03em;
+}
+.idc-desig {
+  font-size: 10px;
+  color: #555;
+  text-align: center;
+  padding: 0 8px;
+  margin-bottom: 8px;
+}
+.idc-member-box {
+  background: #e8f5e9;
+  border: 1.5px solid #a5d6a7;
+  border-radius: 6px;
+  margin: 0 12px 10px;
+  padding: 5px 10px;
+  text-align: center;
+}
+.idc-member-label {
+  font-size: 8px;
+  color: #555;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.idc-member-no {
+  font-size: 13px;
+  font-weight: 900;
+  color: #c62828;
+  letter-spacing: 0.04em;
+}
+.idc-district {
+  font-size: 10px;
+  color:#fff;
+  text-align: center;
+  font-weight: 600;
+  padding-bottom: px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.idc-footer {
+  background:  #2e7d32;
+  border-top: 1px solid #c8e6c9;
+  padding: 5px 10px;
+  font-size: 8px;
+  color: #ffffff;
+  text-align: center;
+}
+.btn-dl-card {
+  width: 100%;
+  padding: 10px;
+  background: var(--g-mid);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-weight: bold;
+  cursor: pointer;
+  font-size: 0.9rem;
+  margin-bottom: 8px;
+}
+.btn-dl-card:hover { background: var(--g-dark); }
+.btn-id-card { background: #7b1fa2; }  /* purple — distinct from PDF blue */
+
+/* ============================================================
+   MOBILE
+============================================================ */
+@media (max-width: 600px) {
+  .stats-bar { gap: 8px; }
+  .stat-card { min-width: 70px; padding: 10px 8px; }
+  .stat-number { font-size: 1.4rem; }
+  .top-bar { gap: 6px; }
+  .btn-top { padding: 6px 10px; font-size: 0.76rem; }
+  #cardGrid { grid-template-columns: 1fr; }
+  .toolbar { gap: 7px; }
+}
+
+/* ============================================================
+   PRINT
+============================================================ */
+@media print {
+  .top-bar, .toolbar, .stats-bar,
+  .card-footer, #loginScreen { display: none !important; }
+  body { background: #fff; }
+  .app-card { box-shadow: none; border: 1px solid #ccc; break-inside: avoid; }
+  .hide-on-print { display: none !important; }
+}
+</style>
+</head>
+<body>
+
+<!-- ============================================================
+     LOGIN SCREEN
+============================================================ -->
+<div id="loginScreen">
+  <div class="login-card">
+    <img class="login-logo"
+      src="https://blogger.googleusercontent.com/img/a/AVvXsEhETy3DFh--DdP5vTPBz70-xwzzwhH_zJhE_0PBBerY402EMi7AdbpKhc10gzCDJqIn0BBSPtDDsGE_sa-iYcR6RvM0nJJrvxqxQ-bam5ZtmuEoChYaluYm58gplQNYES5nIcvCkEL-Tuj7_FBTmb9zo5FjpJvdzpq0ZV4BjW8qY5Wm-ZKANU5NKTT0dw=s224"
+      alt="KGAPA Logo"
+      onerror="this.style.display='none'">
+    <h2>KGAPA Admin Panel</h2>
+    <p>Kerala Govt. Ayurveda Pharmacists' Association</p>
+
+    <select id="loginDistrict">
+      <option value="">Select Your District</option>
+      <option>Thiruvananthapuram</option><option>Kollam</option>
+      <option>Pathanamthitta</option><option>Alappuzha</option>
+      <option>Kottayam</option><option>Idukki</option>
+      <option>Ernakulam</option><option>Thrissur</option>
+      <option>Palakkad</option><option>Malappuram</option>
+      <option>Kozhikode</option><option>Wayanad</option>
+      <option>Kannur</option><option>Kasaragod</option>
+    </select>
+
+    <input type="password" id="loginPin" placeholder="Enter District PIN" onkeydown="if(event.key==='Enter') login()">
+    <button class="login-btn" onclick="login()">Login →</button>
+    <p id="loginError"></p>
+  </div>
+</div>
+
+<!-- ============================================================
+     APP SHELL (shown after login)
+============================================================ -->
+<div id="appShell">
+
+  <!-- TOP BAR -->
+  <div class="top-bar">
+    <span class="top-bar-title">KGAPA Admin</span>
+    <span class="top-bar-district" id="districtLabel"></span>
+    <button class="btn-top btn-change-pin" onclick="openChangePinModal()">🔑 Change PIN</button>
+    <button class="btn-top btn-logout" onclick="logout()">Logout</button>
+  </div>
+
+  <!-- MAIN CONTENT -->
+  <div class="main-content">
+
+    <!-- STATS -->
+    <div class="stats-bar">
+      <div class="stat-card">
+        <div class="stat-number" id="statTotal">0</div>
+        <div class="stat-label">Total</div>
+      </div>
+      <div class="stat-card orange">
+        <div class="stat-number" id="statPending">0</div>
+        <div class="stat-label">Pending</div>
+      </div>
+      <div class="stat-card blue">
+        <div class="stat-number" id="statApproved">0</div>
+        <div class="stat-label">Approved</div>
+      </div>
+      <div class="stat-card red">
+        <div class="stat-number" id="statRejected">0</div>
+        <div class="stat-label">Rejected</div>
+      </div>
+    </div>
+
+    <!-- TOOLBAR -->
+    <div class="toolbar">
+      <input class="search-box" id="searchBox" placeholder="🔍 Search by name or phone…" oninput="filterAndRender()">
+      <select class="filter-select" id="filterStatus" onchange="filterAndRender()">
+        <option value="All">All Status</option>
+        <option value="Pending">Pending</option>
+        <option value="Approved">Approved</option>
+        <option value="Rejected">Rejected</option>
+      </select>
+      <button class="btn-pdf btn-pdf-all"      onclick="exportAllPDF()">📄 All PDF</button>
+      <button class="btn-pdf btn-pdf-approved" onclick="exportApprovedPDF()">✅ Approved List PDF</button>
+      <!-- കണ്ടെയ്നർ Div -->
+<style>
+    /* ബട്ടണിന്റെയും പോപ്പ്-അപ്പിന്റെയും ഡിസൈൻ */
+    .delete-btn-container { position: relative; display: inline-block; vertical-align: middle; }
+    .delete-all-btn { background-color: #d32f2f; color: white; border: none; border-radius: 5px; padding: 6px 12px; margin: 0; font-size: 14px; font-weight: bold; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    .delete-all-btn:hover { background-color: #b71c1c; }
+    
+    .danger-popover { 
+        visibility: hidden; 
+        opacity: 0; 
+        position: absolute; 
+        bottom: 125%; 
+        left: 50%; 
+        transform: translateX(-50%); 
+        width: 120px; 
+        background-color: #fff; 
+        padding: 5px; 
+        border-radius: 8px; 
+        box-shadow: 0 4px 10px rgba(0,0,0,0.3); 
+        z-index: 1000; 
+        transition: opacity 0.3s ease, bottom 0.3s ease;
+        pointer-events: none; 
+    }
+    .danger-popover img { width: 100%; height: auto; border-radius: 5px; display: block; }
+    
+    /* മൗസ് വെക്കുമ്പോൾ പോപ്പ്-അപ്പ് കാണിക്കാൻ */
+    .delete-btn-container:hover .danger-popover { visibility: visible; opacity: 1; bottom: 115%; }
+</style>
+
+<!-- ബട്ടണും ചിത്രവും -->
+<div class="delete-btn-container">
+    <button onclick="deleteAllApps()" class="delete-all-btn">
+        ⚠️ Delete All Applications
+    </button>
+    <div class="danger-popover">
+        <img src="https://raw.githubusercontent.com/KGAPA/mfkgapa/main/dangerous.png" alt="Danger Warning">
+    </div>
+</div>
+    </div>
+
+    <!-- LOADING -->
+    <div class="loading-wrap" id="loadingWrap">
+      <div class="spinner"></div>
+      <div>Loading applications…</div>
+    </div>
+
+    <!-- CARD GRID -->
+    <div id="cardGrid"></div>
+
+  </div><!-- /.main-content -->
+</div><!-- /#appShell -->
+
+<!-- ============================================================
+     CHANGE PIN MODAL
+============================================================ -->
+<div class="modal-overlay" id="pinModal">
+  <div class="modal-box">
+    <h3>🔑 Change District PIN</h3>
+    <input type="password" id="currentPinInput" placeholder="Current PIN">
+    <input type="password" id="newPinInput"     placeholder="New PIN (min 4 digits)">
+    <input type="password" id="confirmPinInput" placeholder="Confirm New PIN">
+    <div class="modal-actions">
+      <button class="btn-modal-cancel" onclick="closePinModal()">Cancel</button>
+      <button class="btn-modal-save"   onclick="changePin()">Save PIN</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     ID CARD MODAL
+============================================================ -->
+<div class="modal-overlay" id="idCardModal">
+  <div class="modal-box">
+    <h3>🪪 Member ID Card</h3>
+
+    <!-- The card that gets captured by html2canvas -->
+    <div id="idCardTemplate">
+      <div class="idc-header">
+        <img class="idc-logo"
+     id="idcLogo" 
+     crossorigin="anonymous" 
+     src="https://raw.githubusercontent.com/sumteck/mfkgapa/main/20210813_123510.png" 
+     alt="KGAPA Logo">
+        <div class="idc-org-name">KERALA GOVT. AYURVEDA<br>PHARMACISTS' ASSOCIATION</div>
+        <div class="idc-org-sub">Central Committee, Thiruvananthapuram</div>
+        <div class="idc-org-sub">Reg. No. 202/78</div>
+      </div>
+
+      <div class="idc-photo-wrap">
+        <img id="idcPhoto" class="idc-photo" src="" alt="Photo" style="display:none;">
+        <div id="idcPhotoPlaceholder" class="idc-photo-placeholder">PHOTO</div>
+      </div>
+
+      <div class="idc-name"    id="idcName"></div>
+      <div class="idc-desig"   id="idcDesig"></div>
+
+      <div class="idc-member-box">
+        <div class="idc-member-label">Member No.</div>
+        <div class="idc-member-no" id="idcMemberNo"></div>
+      </div>
+
+      <div class="idc-footer">
+    <!-- ജില്ലയുടെ പേര് ഇവിടെ വരും -->
+    <div class="idc-district" id="idcDistrict" style="font-weight: bold; margin-bottom: 2px;"></div>
+    
+    <!-- രജിസ്ട്രേഷൻ വിവരങ്ങൾ -->
+    
+     </div>
+</div><!-- /#idCardTemplate -->
+
+    <button class="btn-dl-card" onclick="downloadIDCard()">⬇️ Download as Image</button>
+    <button class="btn-modal-cancel" style="width:100%;" onclick="closeIDCardModal()">Close</button>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<!-- ============================================================
+     JAVASCRIPT
+============================================================ -->
+<script>
+/* ----------------------------------------------------------------
+   CONFIGURATION — replace with your Cloudflare Worker URL
+---------------------------------------------------------------- */
+const API_URL = "https://kgapa-backend.kgapaalpy.workers.dev";
+
+/* ----------------------------------------------------------------
+   STATE
+---------------------------------------------------------------- */
+let currentDistrict = null;
+let allData = [];
+
+/* ----------------------------------------------------------------
+   BOOT — check sessionStorage for existing session
+---------------------------------------------------------------- */
+window.addEventListener('DOMContentLoaded', () => {
+  const saved = sessionStorage.getItem('kgapa_district');
+  if (saved) {
+    currentDistrict = saved;
+    showDashboard();
+    loadData();
+  }
+});
+
+/* ----------------------------------------------------------------
+   TOAST HELPER
+---------------------------------------------------------------- */
+function showToast(msg, type = '') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'show ' + type;
+  setTimeout(() => { t.className = ''; }, 3000);
+}
+
+/* ----------------------------------------------------------------
+   LOGIN
+---------------------------------------------------------------- */
+async function login() {
+  const district = document.getElementById('loginDistrict').value.trim();
+  const pin      = document.getElementById('loginPin').value.trim();
+  const errEl    = document.getElementById('loginError');
+  errEl.textContent = '';
+
+  if (!district) { errEl.textContent = 'Please select your district.'; return; }
+  if (!pin)       { errEl.textContent = 'Please enter your PIN.'; return; }
+
+  try {
+    const res = await fetch(`${API_URL}/verify-pin`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ district, pin })
+    });
+
+    if (res.status === 401) { errEl.textContent = 'Wrong PIN. Try again.'; return; }
+    if (!res.ok) throw new Error('Server error: ' + res.status);
+
+    // Store in sessionStorage (clears on tab close — more secure than localStorage)
+    sessionStorage.setItem('kgapa_district', district);
+    currentDistrict = district;
+    showDashboard();
+    loadData();
+
+  } catch (err) {
+    errEl.textContent = 'Connection error. Check your network.';
+    console.error(err);
+  }
+}
+
+/* ----------------------------------------------------------------
+   LOGOUT
+---------------------------------------------------------------- */
+function logout() {
+  sessionStorage.removeItem('kgapa_district');
+  currentDistrict = null;
+  allData = [];
+  document.getElementById('appShell').style.display = 'none';
+  document.getElementById('loginScreen').style.display = 'flex';
+  document.getElementById('loginPin').value = '';
+  document.getElementById('loginError').textContent = '';
+}
+
+/* ----------------------------------------------------------------
+   SHOW DASHBOARD
+---------------------------------------------------------------- */
+function showDashboard() {
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('appShell').style.display   = 'block';
+  document.getElementById('districtLabel').textContent = currentDistrict;
+}
+
+/* ----------------------------------------------------------------
+   LOAD DATA FROM WORKER
+---------------------------------------------------------------- */
+async function loadData() {
+  document.getElementById('loadingWrap').style.display = 'block';
+  document.getElementById('cardGrid').innerHTML = '';
+
+  try {
+    const res = await fetch(`${API_URL}/list?district=${encodeURIComponent(currentDistrict)}`);
+    if (!res.ok) throw new Error('Failed to fetch: ' + res.status);
+    allData = await res.json();
+    updateStats();
+    filterAndRender();
+  } catch (err) {
+    document.getElementById('cardGrid').innerHTML =
+      '<div class="empty-state">⚠️ Failed to load data. Check your Worker URL and CORS settings.</div>';
+    console.error(err);
+  } finally {
+    document.getElementById('loadingWrap').style.display = 'none';
+  }
+}
+
+/* ----------------------------------------------------------------
+   STATS
+---------------------------------------------------------------- */
+function updateStats() {
+  document.getElementById('statTotal').textContent    = allData.length;
+  document.getElementById('statPending').textContent  = allData.filter(x => x.status === 'Pending').length;
+  document.getElementById('statApproved').textContent = allData.filter(x => x.status === 'Approved').length;
+  document.getElementById('statRejected').textContent = allData.filter(x => x.status === 'Rejected').length;
+}
+
+/* ----------------------------------------------------------------
+   FILTER & RENDER
+---------------------------------------------------------------- */
+function filterAndRender() {
+  const q      = document.getElementById('searchBox').value.toLowerCase();
+  const status = document.getElementById('filterStatus').value;
+
+  let filtered = allData;
+  if (status !== 'All') filtered = filtered.filter(x => x.status === status);
+  if (q) filtered = filtered.filter(x =>
+    (x.name  || '').toLowerCase().includes(q) ||
+    (x.phone || '').includes(q) ||
+    (x.pen   || '').includes(q)
+  );
+
+  renderCards(filtered);
+}
+
+/* ----------------------------------------------------------------
+   RENDER CARDS
+---------------------------------------------------------------- */
+function renderCards(data) {
+  const grid = document.getElementById('cardGrid');
+  grid.innerHTML = '';
+
+  if (!data.length) {
+    grid.innerHTML = '<div class="empty-state">No applications found.</div>';
+    return;
+  }
+
+  data.forEach((app, i) => {
+    const badgeClass = app.status === 'Approved' ? 'badge-approved'
+                     : app.status === 'Rejected' ? 'badge-rejected'
+                     : 'badge-pending';
+
+    // Avatar: photo if available, else initials
+    const avatarHtml = (app.photo && app.photo.length > 100)
+      ? `<img src="${app.photo}" alt="Photo">`
+      : (app.name || '?').charAt(0).toUpperCase();
+
+    const card = document.createElement('div');
+    card.className = 'app-card';
+    card.innerHTML = `
+      <div class="card-header">
+        <div class="card-avatar">${avatarHtml}</div>
+        <div>
+          <div class="card-name">${esc(app.name)}</div>
+          <div class="card-designation">${esc(app.designation || 'Ayurveda Pharmacist')}</div>
+          <span class="badge ${badgeClass}">${app.status}</span>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="card-row">
+          <span class="card-row-label">📞 Phone</span>
+          <span class="card-row-val">${esc(app.phone)}</span>
+        </div>
+        <div class="card-row">
+          <span class="card-row-label">🆔 PEN</span>
+          <span class="card-row-val">${esc(app.pen || '—')}</span>
+        </div>
+        <div class="card-row">
+          <span class="card-row-label">📋 Adm.No</span>
+          <span class="card-row-val">${esc(app.admissionNo || '—')}</span>
+        </div>
+        ${ app.memberNo ? `<div class="card-row">
+          <span class="card-row-label">🎫 Member</span>
+          <span class="card-row-val" style="color:var(--g-mid);font-weight:900;">${esc(app.memberNo)}</span>
+        </div>` : '' }
+      </div>
+      <div class="card-footer">
+        <input class="admission-input" id="adm_${i}"
+               placeholder="Admission No."
+               value="${esc(app.admissionNo || '')}">
+        <button class="btn-action btn-approve" onclick="updateStatus('${app.id}','Approved',${i})">✓ Approve</button>
+        <button class="btn-action btn-reject"  onclick="updateStatus('${app.id}','Rejected',${i})">✗ Reject</button>
+       
+        <button class="btn-action btn-id-card"  onclick="openIDCard('${app.id}')">🪪 ID Card</button>
+        <button onclick="viewFullForm('${app.id}')" style="background: #8e44ad; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; margin-right: 5px;">📄 View Form</button>
+        <button onclick="deleteApp('${app.id}', '${app.district}')" style="background: red; color: white; border: none; padding: 5px 10px; border-radius: 5px; cursor: pointer;">🗑️ Delete</button>
+      </div>
+    `;
+    grid.appendChild(card);
+  });
+}
+
+/* Escape HTML to prevent XSS */
+function esc(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+/* ----------------------------------------------------------------
+   UPDATE STATUS (Approve / Reject)
+---------------------------------------------------------------- */
+async function updateStatus(id, status, idx) {
+  const admInputId = `adm_${idx}`;
+  const admEl = document.getElementById(admInputId);
+  const admissionNo = admEl ? admEl.value.trim() : '';
+
+  if (status === 'Approved' && !admissionNo) {
+    showToast('Please enter an Admission No. before approving.', 'error');
+    admEl && admEl.focus();
+    return;
+  }
+
+  try {
+    const res = await fetch(`${API_URL}/update`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, status, admissionNo, district: currentDistrict })
+    });
+
+    if (!res.ok) throw new Error('Update failed: ' + res.status);
+
+    // Update local allData
+    const rec = allData.find(x => x.id === id);
+    if (rec) {
+      rec.status = status;
+      rec.admissionNo = admissionNo;
+    }
+    updateStats();
+    filterAndRender();
+    showToast(`Application ${status === 'Approved' ? '✅ Approved' : '❌ Rejected'} successfully.`, status === 'Approved' ? 'success' : 'error');
+  } catch (err) {
+    console.error(err);
+    showToast('Failed to update. Check Worker.', 'error');
+  }
+}
+async function deleteApp(id, district) {
+    if (!confirm("ഈ അപേക്ഷ ഡിലീറ്റ് ചെയ്യട്ടെ?")) return;
+
+    try {
+        const response = await fetch(`${API_URL}/delete?id=${id}&district=${district}`);
+        const result = await response.json();
+
+        if (result.success) {
+            alert("വിജയകരമായി ഡിലീറ്റ് ചെയ്തു.");
+            location.reload();
+        } else {
+            alert("Error: " + (result.error || "ഡിലീറ്റ് ചെയ്യാൻ കഴിഞ്ഞില്ല"));
+        }
+    } catch (error) {
+        console.error("Delete Error:", error);
+        // ഇവിടെ യഥാർത്ഥ എറർ മെസ്സേജ് കാണിക്കാൻ മാറ്റം വരുത്തിയിട്ടുണ്ട് 
+        alert("എറർ വന്നിട്ടുണ്ട്: " + error.message);
+    }
+}
+
+async function deleteAllApps() {
+    if (!currentDistrict) {
+        alert("ജില്ലാ വിവരം ലഭ്യമല്ല. ദയവായി വീണ്ടും ലോഗിൻ ചെയ്യുക.");
+        return;
+    }
+
+    if (!confirm(`${currentDistrict} ജില്ലയിലെ എല്ലാ അപേക്ഷകളും നീക്കം ചെയ്യട്ടെ?`)) return;
+
+    try {
+        const response = await fetch(`${API_URL}/delete-all?district=${currentDistrict}`);
+        
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        
+        const result = await response.json();
+
+        if (result.success) {
+            alert("വിജയകരമായി നീക്കം ചെയ്തു.");
+            location.reload();
+        } else {
+            alert("ഡിലീറ്റ് ചെയ്യാൻ സാധിച്ചില്ല: " + (result.error || "Unknown Error"));
+        }
+    } catch (error) {
+        console.error("Fetch error:", error);
+        // ഇവിടെയും യഥാർത്ഥ എറർ എന്താണെന്ന് കാണിക്കാൻ നൽകിയിട്ടുണ്ട്
+        alert("എറർ വന്നിട്ടുണ്ട്: " + error.message);
+    }
+}
+/* ----------------------------------------------------------------
+   CHANGE PIN
+---------------------------------------------------------------- */
+function openChangePinModal() {
+  document.getElementById('pinModal').classList.add('active');
+  document.getElementById('currentPinInput').value = '';
+  document.getElementById('newPinInput').value     = '';
+  document.getElementById('confirmPinInput').value = '';
+}
+function closePinModal() {
+  document.getElementById('pinModal').classList.remove('active');
+}
+
+async function changePin() {
+  const current  = document.getElementById('currentPinInput').value.trim();
+  const newPin   = document.getElementById('newPinInput').value.trim();
+  const confirm  = document.getElementById('confirmPinInput').value.trim();
+
+  if (!current || !newPin || !confirm) { showToast('Fill all PIN fields.', 'error'); return; }
+  if (newPin.length < 4)  { showToast('New PIN must be at least 4 characters.', 'error'); return; }
+  if (newPin !== confirm) { showToast('New PINs do not match.', 'error'); return; }
+
+  try {
+    const res = await fetch(`${API_URL}/change-pin`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ district: currentDistrict, currentPin: current, newPin })
+    });
+
+    if (res.status === 401) { showToast('Current PIN is wrong.', 'error'); return; }
+    if (!res.ok) throw new Error('Server error: ' + res.status);
+
+    closePinModal();
+    showToast('✅ PIN changed successfully!', 'success');
+  } catch (err) {
+    console.error(err);
+    showToast('Failed to change PIN. Try again.', 'error');
+  }
+}
+
+/* ----------------------------------------------------------------
+   ID CARD — Open modal and populate fields
+---------------------------------------------------------------- */
+function openIDCard(id) {
+  const app = allData.find(x => x.id === id);
+  if (!app) return;
+
+  if (app.status !== 'Approved') {
+    showToast('ID Card is only available for Approved members.', 'error');
+    return;
+  }
+
+  // Populate card fields
+  document.getElementById('idcName').textContent    = (app.name || '').toUpperCase();
+  document.getElementById('idcDesig').textContent   = app.designation || 'Ayurveda Pharmacist';
+  document.getElementById('idcMemberNo').textContent = app.memberNo || app.admissionNo || '—';
+  document.getElementById('idcDistrict').textContent = (app.district || currentDistrict) + ' ';
+
+  // Photo
+  const photoEl = document.getElementById('idcPhoto');
+  const placeholderEl = document.getElementById('idcPhotoPlaceholder');
+  if (app.photo && app.photo.length > 100) {
+    photoEl.src = app.photo;
+    photoEl.style.display = 'block';
+    placeholderEl.style.display = 'none';
+  } else {
+    photoEl.style.display = 'none';
+    placeholderEl.style.display = 'flex';
+  }
+
+  // Make sure logo loads with crossorigin
+  const logoEl = document.getElementById('idcLogo');
+  logoEl.crossOrigin = 'anonymous';
+
+  document.getElementById('idCardModal').classList.add('active');
+}
+
+function closeIDCardModal() {
+  document.getElementById('idCardModal').classList.remove('active');
+}
+
+/* ----------------------------------------------------------------
+   ID CARD — Download as PNG via html2canvas
+---------------------------------------------------------------- */
+function downloadIDCard() {
+  const el = document.getElementById('idCardTemplate');
+  const name = document.getElementById('idcName').textContent || 'Member';
+
+  html2canvas(el, {
+    scale: 4,              // high-res output
+    useCORS: true,         // allow cross-origin logo image
+    backgroundColor: null, // transparent bg respects border-radius
+    logging: false,
+  }).then(canvas => {
+    const link = document.createElement('a');
+    link.download = `KGAPA_ID_${name.replace(/\s+/g, '_')}.png`;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+    showToast('✅ ID Card downloaded!', 'success');
+  }).catch(err => {
+    console.error(err);
+    showToast('Failed to generate image. Try again.', 'error');
+  });
+}
+
+async function exportIndividualPDF(id) {
+  const app = allData.find(x => x.id === id);
+  if (!app) return;
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+
+  doc.setFillColor(46, 125, 50);
+  doc.rect(0, 0, 210, 28, 'F');
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(14);
+  doc.setFont('helvetica', 'bold');
+  doc.text('KERALA GOVT. AYURVEDA PHARMACISTS\' ASSOCIATION', 105, 11, { align: 'center' });
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'normal');
+  doc.text('Application Details — ' + currentDistrict + ' District', 105, 19, { align: 'center' });
+
+  doc.setTextColor(0, 0, 0);
+  doc.setFontSize(11);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Applicant Information', 14, 36);
+
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'normal');
+  const rows = [
+    ['Name',        app.name],
+    ['Designation', app.designation || 'Ayurveda Pharmacist'],
+    ['PEN',         app.pen || '—'],
+    ['Phone',       app.phone],
+    ['District',    app.district || currentDistrict],
+    ['Status',      app.status],
+    ['Admission No', app.admissionNo || '—'],
+  ];
+
+  let y = 44;
+  rows.forEach(([label, val]) => {
+    doc.setFont('helvetica', 'bold');
+    doc.text(label + ':', 14, y);
+    doc.setFont('helvetica', 'normal');
+    doc.text(String(val || ''), 60, y);
+    y += 9;
+  });
+
+  doc.setFontSize(8);
+  doc.setTextColor(150);
+  doc.text('Generated by KGAPA Admin Panel — ' + new Date().toLocaleDateString('en-IN'), 14, 285);
+
+  doc.save(`KGAPA_${(app.name || 'Application').replace(/\s+/g,'_')}.pdf`);
+}
+
+/* ----------------------------------------------------------------
+   PDF EXPORT — Approved Members List
+---------------------------------------------------------------- */
+function exportApprovedPDF() {
+  const approved = allData.filter(x => x.status === 'Approved');
+  if (!approved.length) { showToast('No approved members to export.', 'error'); return; }
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'landscape' });
+
+  // Header
+  doc.setFillColor(46, 125, 50);
+  doc.rect(0, 0, 297, 22, 'F');
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(13);
+  doc.setFont('helvetica', 'bold');
+  doc.text('KGAPA — Approved Members List', 148.5, 9, { align: 'center' });
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'normal');
+  doc.text(currentDistrict + ' District  |  Generated: ' + new Date().toLocaleDateString('en-IN'), 148.5, 17, { align: 'center' });
+
+  // Table header
+  doc.setTextColor(0, 0, 0);
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'bold');
+  doc.setFillColor(232, 245, 233);
+  doc.rect(10, 26, 277, 8, 'F');
+
+  const cols = [14, 24, 90, 155, 210, 255];
+  const headers = ['Sl.No', 'Name', 'Designation', 'Phone', 'Adm. No', 'Member No'];
+  headers.forEach((h, i) => doc.text(h, cols[i], 32));
+
+  doc.setFont('helvetica', 'normal');
+  let y = 40;
+
+  approved.forEach((app, idx) => {
+    if (y > 188) {
+      doc.addPage();
+      y = 20;
+    }
+    if (idx % 2 === 0) {
+      doc.setFillColor(250, 255, 250);
+      doc.rect(10, y - 5, 277, 8, 'F');
+    }
+    const row = [
+      String(idx + 1),
+      (app.name || '').substring(0, 28),
+      (app.designation || 'Ayurveda Pharmacist').substring(0, 24),
+      app.phone || '—',
+      app.admissionNo || '—',
+      app.memberNo || '—',
+    ];
+    row.forEach((val, i) => doc.text(val, cols[i], y));
+    y += 9;
+  });
+
+  doc.setFontSize(8);
+  doc.setTextColor(150);
+  doc.text('Total Approved: ' + approved.length + '  |  KGAPA Admin Panel', 14, 198);
+
+  doc.save(`KGAPA_Approved_Members_${currentDistrict}.pdf`);
+}
+
+/* ----------------------------------------------------------------
+   PDF EXPORT — All Applications
+---------------------------------------------------------------- */
+function exportAllPDF() {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'landscape' });
+
+  doc.setFillColor(46, 125, 50);
+  doc.rect(0, 0, 297, 22, 'F');
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(13);
+  doc.setFont('helvetica', 'bold');
+  doc.text('KGAPA — All Applications', 148.5, 9, { align: 'center' });
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'normal');
+  doc.text(currentDistrict + ' District  |  ' + new Date().toLocaleDateString('en-IN'), 148.5, 17, { align: 'center' });
+
+  doc.setTextColor(0, 0, 0);
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'bold');
+  doc.setFillColor(232, 245, 233);
+  doc.rect(10, 26, 277, 8, 'F');
+
+  const cols = [14, 24, 90, 148, 198, 238, 268];
+  const headers = ['Sl.No', 'Name', 'Designation', 'Phone', 'PEN', 'Status', 'Adm.No'];
+  headers.forEach((h, i) => doc.text(h, cols[i], 32));
+
+  doc.setFont('helvetica', 'normal');
+  let y = 40;
+
+  allData.forEach((app, idx) => {
+    if (y > 188) { doc.addPage(); y = 20; }
+    if (idx % 2 === 0) {
+      doc.setFillColor(250, 255, 250);
+      doc.rect(10, y - 5, 277, 8, 'F');
+    }
+    const row = [
+      String(idx + 1),
+      (app.name || '').substring(0, 28),
+      (app.designation || '').substring(0, 22),
+      app.phone || '—',
+      app.pen   || '—',
+      app.status || '—',
+      app.admissionNo || '—',
+    ];
+    row.forEach((val, i) => doc.text(val, cols[i], y));
+    y += 9;
+  });
+
+  doc.setFontSize(8);
+  doc.setTextColor(150);
+  doc.text('Total: ' + allData.length + '  |  KGAPA Admin Panel', 14, 198);
+
+  doc.save(`KGAPA_All_Applications_${currentDistrict}.pdf`);
+}
+function loadAdminPresSign(event) {
+    const file = event.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const img = document.getElementById('adminPresSignImg');
+            img.src = e.target.result;
+            img.style.display = 'block'; // ചിത്രം വന്നാൽ അത് കാണിക്കുന്നു
+        };
+        reader.readAsDataURL(file);
+    }
+}
+</script>
+<!-- ==========================================
+     A4 FORM MODAL FOR ADMIN PANEL
+=========================================== -->
+<style>
+    .form-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 2000; overflow-y: auto; padding: 20px; font-family: 'Arial', sans-serif; }
+    .form-modal-content { background: #525659; margin: auto; padding: 20px; width: fit-content; border-radius: 8px; position: relative; }
+    .close-form-btn { 
+        position: absolute; 
+        top: 15px; 
+        right: 15px; 
+        width: 40px; 
+        height: 40px; 
+        background-color: #d32f2f; 
+        color: white; 
+        border: 2px solid white; 
+        border-radius: 50%; 
+        font-size: 28px; 
+        font-weight: bold; 
+        text-align: center; 
+        line-height: 32px; 
+        cursor: pointer; 
+        z-index: 1000; 
+        box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    }
+    
+    .close-form-btn:hover { 
+        background-color: #b71c1c; 
+    }
+    .print-btn-modal { background: #3498db; color: white; padding: 10px 20px; border: none; cursor: pointer; font-size: 16px; margin-bottom: 20px; border-radius: 5px; font-weight:bold; }
+    
+    .admin-a4-page { width: 210mm; min-height: 297mm; padding: 10mm 15mm; margin: auto; background: white; position: relative; color: black; box-sizing: border-box; }
+    .admin-a4-page .logo-area { position: absolute; left: 15mm; top: 10mm; }
+    .admin-a4-page .logo-area img { width: 22mm; }
+    .admin-a4-page .photo-area { position: absolute; right: 15mm; top: 10mm; border: 1px solid #000; width: 30mm; height: 35mm; display:flex; justify-content:center; align-items:center; }
+    .admin-a4-page .photo-area img { width: 100%; height: 100%; object-fit: cover; }
+    .admin-a4-page .header-section { text-align: center; padding: 0 35mm; margin-bottom: 20px; }
+    .admin-a4-page .header-section h2 { font-size: 14pt; margin: 0; }
+    .admin-a4-page .form-oval { border: 1.5px solid black; border-radius: 20px; padding: 3px 20px; display: inline-block; margin: 8px 0; font-weight: bold; font-size: 11pt; }
+    .admin-a4-page .form-title { font-weight: bold; font-size: 11pt; text-decoration: underline; }
+    .admin-a4-page .field-row { display: flex; margin-bottom: 8px; font-size: 11pt; }
+    .admin-a4-page .field-label { width: 310px; font-weight: bold; }
+    .admin-a4-page .field-dots { width: 20px; text-align: center; font-weight: bold; }
+    .field-value { flex-grow: 1; border-bottom: none; min-height: 20px; outline: none; font-weight: bold; }
+    .admin-a4-page .remarks-header { text-align: center; font-weight: bold; text-decoration: underline; font-size: 12pt; margin: 20px 0 10px 0; }
+
+    /* Print Settings */
+    @media print {
+        body * { visibility: hidden; }
+        #adminFormModal, #adminFormModal * { visibility: visible; }
+        #adminFormModal { position: absolute; left: 0; top: 0; width: 100%; background: transparent; padding: 0; overflow: visible; }
+        .form-modal-content { background: transparent; margin: 0; padding: 0; box-shadow: none; }
+        .close-form-btn, .print-btn-modal { display: none !important; }
+        .admin-a4-page { box-shadow: none; margin: 0; border: none; }
+    }
+    
+</style>
+
+<div id="adminFormModal" class="form-modal">
+    <div class="form-modal-content">
+        <span class="close-form-btn" onclick="document.getElementById('adminFormModal').style.display='none'">&times;</span>
+        <button class="print-btn-modal" onclick="window.print()">🖨️ Print Form</button>
+        <button class="print-btn-modal" style="background: #27ae60;" onclick="saveAdminRemarks()">💾 Save Data</button>
+        
+        <div class="admin-a4-page" id="adminPrintArea">
+            <!-- Logo -->
+            <div class="logo-area"><img src="https://blogger.googleusercontent.com/img/a/AVvXsEhETy3DFh--DdP5vTPBz70-xwzzwhH_zJhE_0PBBerY402EMi7AdbpKhc10gzCDJqIn0BBSPtDDsGE_sa-iYcR6RvM0nJJrvxqxQ-bam5ZtmuEoChYaluYm58gplQNYES5nIcvCkEL-Tuj7_FBTmb9zo5FjpJvdzpq0ZV4BjW8qY5Wm-ZKANU5NKTT0dw=s224" alt="Logo"></div>
+            
+            <div class="header-section">
+                <h2>KERALA GOVT: AYURVEDA PHARMACISTS' ASSOCIATION</h2>
+                <p style="margin:2px 0; font-weight:bold; font-size:10pt;">Central Committee, Thiruvananthapuram (Reg. No. 202/78)</p>
+                <div class="form-oval">Form No: 1 Part A</div><br>
+                <div class="form-title">( APPLICATION FOR MEMBERSHIP )</div>
+            </div>
+
+            <!-- Photo -->
+            <div class="photo-area"><img id="adminViewPhoto" src="" alt="Photo" style="display:none;"></div>
+
+            <!-- Main Form -->
+           <!-- Main Form -->
+            <div class="main-form">
+                <div class="field-row"><div class="field-label">1. Name</div><div class="field-dots">:</div><div class="field-value" id="adminViewName"></div></div>
+                <div class="field-row"><div class="field-label">2. PEN</div><div class="field-dots">:</div><div class="field-value" id="adminViewPen"></div></div>
+                <div class="field-row"><div class="field-label">3. Designation</div><div class="field-dots">:</div><div class="field-value" id="adminViewDesig"></div></div>
+                <div class="field-row"><div class="field-label">4. Official Address</div><div class="field-dots">:</div><div class="field-value" id="adminViewOfficialAddress" contenteditable="true"></div></div>
+                <div class="field-row"><div class="field-label">5. Date of Appointment</div><div class="field-dots">:</div><div class="field-value" id="adminViewApptDate" contenteditable="true"></div></div>
+                <div class="field-row"><div class="field-label">6. Date of Retirement</div><div class="field-dots">:</div><div class="field-value" id="adminViewRetDate" contenteditable="true"></div></div>
+                <div class="field-row"><div class="field-label">7. Pay & Scale of Pay</div><div class="field-dots">:</div><div class="field-value" id="adminViewPayScale" contenteditable="true"></div></div>
+                <div class="field-row"><div class="field-label">8. Age and Date of Birth</div><div class="field-dots">:</div><div class="field-value" id="adminViewAgeDob" contenteditable="true"></div></div>
+                <div class="field-row"><div class="field-label">9. Qualification</div></div> 
+                <div class="field-row"><div class="field-label">(a) General</div><div class="field-dots">:</div><div class="field-value" id="adminViewQualGen" contenteditable="true"></div></div>
+                <div class="field-row"><div class="field-label">(b) Technical</div><div class="field-dots">:</div><div class="field-value" id="adminViewQualTech" contenteditable="true"></div></div>
+                <div class="field-row"><div class="field-label">10. Permanent Postal Address</div><div class="field-dots">:</div><div class="field-value" id="adminViewPermAddress" contenteditable="true" style="min-height: 40px;"></div></div>
+                <div class="field-row"><div class="field-label">11. Mobile Numbers</div><div class="field-dots">:</div><div class="field-value" id="adminViewPhone"></div></div>
+                <div class="field-row"><div class="field-label">12. E-mail ID</div><div class="field-dots">:</div><div class="field-value" id="adminViewEmail" contenteditable="true"></div></div>
+            </div>
+
+            <!-- Signature of Applicant -->
+            <div style="margin-top: 15px; display: flex; justify-content: space-between; font-size: 11pt;">
+                <div>Place: <span id="adminViewPlace" contenteditable="true" style="border-bottom: #000; min-width:100px; display:inline-block;"></span><br><br>Date: <span id="adminViewAppDate" contenteditable="true" style="border-bottom: #000; min-width:100px; display:inline-block;"></span></div>
+                <div style="text-align: center;">
+                    <img id="adminViewSign" src="" style="height: 40px; display: none;"><br>
+                    <strong>Signature of Applicant</strong>
+                </div>
+                
+            </div>
+            <!-- District Committee Remarks -->
+            <div class="remarks-header">Remarks of the Dist. Committee</div>
+            <div class="main-form">
+                <div class="field-row"><div class="field-label">1. Name of District</div><div class="field-dots">:</div><div class="field-value" id="adminViewDistrict"></div></div>
+                <div class="field-row"><div class="field-label">2. Dist. Committee Decision No. & Date</div><div class="field-dots">:</div><div class="field-value" id="adminDistDecision" contenteditable="true"></div></div>
+                <div class="field-row"><div class="field-label">3. Admission No</div><div class="field-dots">:</div><div class="field-value" id="adminViewAdmNo"></div></div>
+                <div class="field-row"><div class="field-label">4. Remarks</div><div class="field-dots">:</div><div class="field-value" id="adminDistRemarks" contenteditable="true"></div></div>
+                <div class="field-row"><div class="field-label">5. Date</div><div class="field-dots">:</div><div class="field-value" id="adminDistDate" contenteditable="true"></div></div>
+            </div>
+
+            <!-- President / Secretary Signature Space -->
+            <div style="float: right; text-align: center; margin-top: 10px; font-size: 11pt;">
+                <!-- ഒപ്പ് കാണിക്കാനുള്ള സ്ഥലം -->
+                <img id="adminPresSignImg" src="" style="height: 40px; display: none; margin: 0 auto; margin-bottom: 5px;">
+                
+                <!-- അപ്‌ലോഡ് ബട്ടൺ (പ്രിന്റ് ചെയ്യുമ്പോൾ ഇത് മറയും) -->
+                <div class="hide-on-print" style="margin-bottom: 5px;">
+                    <button type="button" onclick="document.getElementById('adminPresSignIn').click()" style="background: #3498db; color: white; border: none; padding: 4px 8px; font-size: 9pt; cursor: pointer; border-radius: 3px;">Upload Sign</button>
+                    <input type="file" id="adminPresSignIn" hidden accept="image/*" onchange="loadAdminPresSign(event)">
+                </div>
+                
+                <strong>President / Secretary</strong>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<script>
+// ഇത് ഡാറ്റ ഫോമിലേക്ക് മാറ്റി കാണിക്കാനുള്ള ഫംഗ്‌ഷൻ ആണ്
+function viewFullForm(id) {
+    // 👇 ഈ ഒരു വരിയാണ് പുതിയതായി ചേർത്തിരിക്കുന്നത് (ID സേവ് ചെയ്യാൻ)
+    window.currentEditingId = id; 
+
+    const app = allData.find(a => a.id === id);
+    if(!app) return;
+
+    // ഡാറ്റകൾ കോളത്തിലേക്ക് മാറ്റുന്നു
+    document.getElementById('adminViewName').innerText = app.name || '';
+    document.getElementById('adminViewPen').innerText = app.pen || '';
+    document.getElementById('adminViewDesig').innerText = app.designation || '';
+    document.getElementById('adminViewPhone').innerText = app.phone || '';
+    document.getElementById('adminViewDistrict').innerText = app.district || '';
+    document.getElementById('adminViewAdmNo').innerText = app.admissionNo || '';
+
+    // അഡ്മിൻ നേരത്തെ ടൈപ്പ് ചെയ്തത് ഉണ്ടെങ്കിൽ അതും ലോഡ് ചെയ്യുന്നു
+    document.getElementById('adminDistDecision').innerText = app.distDecisionNo || '';
+    document.getElementById('adminDistRemarks').innerText = app.distRemarks || '';
+    document.getElementById('adminDistDate').innerText = app.distDate || '';
+
+    // ഫോട്ടോ
+    const photoEl = document.getElementById('adminViewPhoto');
+    if (app.photo && app.photo.length > 100) {
+        photoEl.src = app.photo;
+        photoEl.style.display = 'block';
+    } else {
+        photoEl.style.display = 'none';
+    }
+
+    // അപേക്ഷകന്റെ ഒപ്പ്
+    const signEl = document.getElementById('adminViewSign');
+    if (app.sign && app.sign.length > 100) {
+        signEl.src = app.sign;
+        signEl.style.display = 'inline-block';
+    } else {
+        signEl.style.display = 'none';
+    }
+
+    // അഡ്മിൻ അപ്‌ലോഡ് ചെയ്ത പ്രസിഡന്റിന്റെ ഒപ്പ് ഉണ്ടെങ്കിൽ അത് കാണിക്കാൻ
+    const presSignEl = document.getElementById('adminPresSignImg');
+    if (app.presSign && app.presSign.length > 100) {
+        presSignEl.src = app.presSign;
+        presSignEl.style.display = 'block';
+    } else {
+        presSignEl.style.display = 'none';
+    }
+
+    // മോഡൽ തുറക്കുന്നു
+    document.getElementById('adminFormModal').style.display = 'block';
+}
+</script>
+<!-- ========================================== -->
+ <!-- ഈ സ്ക്രിപ്റ്റ് </body> ടാഗിന് തൊട്ടു മുകളിലായി ഇടുക -->
+<script>
+let currentAdminAppId = null; 
+
+function viewFullForm(id) {
+    currentAdminAppId = id; 
+    const app = allData.find(a => a.id === id);
+    if(!app) {
+        alert("അപേക്ഷയുടെ വിവരങ്ങൾ ലഭ്യമായില്ല!");
+        return;
+    }
+
+    const setText = (elemId, text) => {
+        const el = document.getElementById(elemId);
+        if(el) el.innerText = text || '';
+    };
+
+    setText('adminViewName', app.name);
+    setText('adminViewPen', app.pen);
+    setText('adminViewDesig', app.designation);
+    setText('adminViewPhone', app.phone);
+    setText('adminViewDistrict', app.district);
+    setText('adminViewAdmNo', app.admissionNo);
+    
+    // അപേക്ഷകൻ പൂരിപ്പിച്ച ബാക്കി വിവരങ്ങൾ
+    setText('adminViewOfficialAddress', app.officialAddress);
+    setText('adminViewApptDate', app.apptDate);
+    setText('adminViewRetDate', app.retDate);
+    setText('adminViewPayScale', app.payScale);
+    setText('adminViewAgeDob', app.ageDob);
+    setText('adminViewQualGen', app.qualGen);
+    setText('adminViewQualTech', app.qualTech);
+    setText('adminViewPermAddress', app.permAddress);
+    setText('adminViewEmail', app.email);
+    setText('adminViewPlace', app.place);
+    setText('adminViewAppDate', app.appDate);
+
+    // അഡ്മിൻ റിമാർക്കുകൾ
+    setText('adminDistDecision', app.distDecisionNo);
+    setText('adminDistRemarks', app.distRemarks);
+    setText('adminDistDate', app.distDate);
+
+    const photoEl = document.getElementById('adminViewPhoto');
+    if (photoEl) {
+        photoEl.src = app.photo && app.photo.length > 100 ? app.photo : "";
+        photoEl.style.display = app.photo && app.photo.length > 100 ? 'block' : 'none';
+    }
+
+    const signEl = document.getElementById('adminViewSign');
+    if (signEl) {
+        signEl.src = app.sign && app.sign.length > 100 ? app.sign : "";
+        signEl.style.display = app.sign && app.sign.length > 100 ? 'inline-block' : 'none';
+    }
+
+    const presSignEl = document.getElementById('adminPresSignImg');
+    if (presSignEl) {
+        presSignEl.src = app.presSign && app.presSign.length > 100 ? app.presSign : "";
+        presSignEl.style.display = app.presSign && app.presSign.length > 100 ? 'block' : 'none';
+    }
+
+    document.getElementById('adminFormModal').style.display = 'block';
+}
+
+async function saveAdminRemarks() {
+    if(!currentAdminAppId) {
+        alert("Error: ID not found!");
+        return;
+    }
+
+    try {
+        const getText = (elemId) => {
+            const el = document.getElementById(elemId);
+            return el ? el.innerText.trim() : '';
+        };
+
+        const decisionNo = getText('adminDistDecision');
+        const remarks = getText('adminDistRemarks');
+        const date = getText('adminDistDate');
+        
+        const presSignEl = document.getElementById('adminPresSignImg');
+        let presSign = presSignEl ? presSignEl.getAttribute('src') : '';
+        if (presSign === "null" || !presSign) presSign = "";
+
+        const saveBtn = document.querySelector('button[onclick="saveAdminRemarks()"]');
+        if(saveBtn) saveBtn.innerText = "Saving...";
+
+        const response = await fetch(`${API_URL}/update`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                id: currentAdminAppId,
+                distDecisionNo: decisionNo,
+                distRemarks: remarks,
+                distDate: date,
+                presSign: presSign
+            })
+        });
+
+        const result = await response.json();
+        
+        if(saveBtn) saveBtn.innerText = "💾 Save Data"; 
+
+        if(result.success) {
+            alert("വിജയകരമായി സേവ് ചെയ്തു!");
+            location.reload(); // മാറ്റം വരുത്തിയ വരി
+        } else {
+            alert("Error: " + result.error);
+        }
+    } catch (e) {
+        console.error("Save Error:", e);
+        alert("എറർ വന്നിട്ടുണ്ട്: " + e.message); 
+    }
+}
+
+</script>
+</body>
+</html>
